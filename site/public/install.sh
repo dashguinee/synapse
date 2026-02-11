@@ -459,6 +459,218 @@ else
   echo -e "${DIM}  No CLAUDE.md found — create one with 'claude /init'${RESET}"
 fi
 
+# ─── Install terminal command ───
+mkdir -p "$HOME/.local/bin"
+
+cat > "$HOME/.local/bin/synapse" << 'LAUNCHER'
+#!/usr/bin/env bash
+# ═══════════════════════════════════════════════════════════════
+# SYNAPSE — Launch Claude Code with persistent memory
+# ═══════════════════════════════════════════════════════════════
+#
+# Usage:
+#   synapse              Continue last session (default)
+#   synapse fresh        Start new session
+#   synapse <ID>         Resume specific session
+#   synapse status       Show memory status without launching
+#
+
+SYNAPSE_DIR="$HOME/.synapse"
+
+# Colors
+C='\033[0;36m'     # Cyan
+P='\033[0;35m'     # Purple
+W='\033[1;37m'     # White bold
+D='\033[2m'        # Dim
+G='\033[0;32m'     # Green
+Y='\033[0;33m'     # Yellow
+R='\033[0;31m'     # Red
+N='\033[0m'        # Reset
+
+# Check Synapse installed
+if [ ! -d "$SYNAPSE_DIR" ]; then
+  echo -e "${R}✗${N} Synapse not installed. Run:"
+  echo "  curl -fsSL https://synapse.dasuperhub.com/install.sh | bash"
+  exit 1
+fi
+
+# Check Claude Code
+if ! command -v claude &> /dev/null; then
+  echo -e "${R}✗${N} Claude Code not found. Install it first:"
+  echo "  curl -fsSL https://claude.ai/install.sh | bash"
+  exit 1
+fi
+
+# Load config
+CONFIG="$SYNAPSE_DIR/config.json"
+if [ -f "$CONFIG" ]; then
+  USER_NAME=$(python3 -c "import json; print(json.load(open('$CONFIG'))['name'])" 2>/dev/null || echo "User")
+  USER_PROJECT=$(python3 -c "import json; print(json.load(open('$CONFIG')).get('project',''))" 2>/dev/null || echo "")
+else
+  USER_NAME="User"
+  USER_PROJECT=""
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# BANNER
+# ═══════════════════════════════════════════════════════════════
+printf '\033[2J\033[H\033[3J'
+
+echo ""
+echo -e "${C}    ███████╗██╗   ██╗███╗   ██╗ █████╗ ██████╗ ███████╗███████╗${N}"
+echo -e "${C}    ██╔════╝╚██╗ ██╔╝████╗  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝${N}"
+echo -e "${C}    ███████╗ ╚████╔╝ ██╔██╗ ██║███████║██████╔╝███████╗█████╗${N}"
+echo -e "${C}    ╚════██║  ╚██╔╝  ██║╚██╗██║██╔══██║██╔═══╝ ╚════██║██╔══╝${N}"
+echo -e "${C}    ███████║   ██║   ██║ ╚████║██║  ██║██║     ███████║███████╗${N}"
+echo -e "${C}    ╚══════╝   ╚═╝   ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚══════╝╚══════╝${N}"
+echo ""
+echo -e "${P}          ⚡ Persistent AI Memory for Claude Code ⚡${N}"
+echo ""
+
+# ═══════════════════════════════════════════════════════════════
+# CONSCIOUSNESS STATUS
+# ═══════════════════════════════════════════════════════════════
+echo -e "${D}────────────────────────────────────────────────────────────────${N}"
+echo -e "${C}  MEMORY${N}  ${D}— ${USER_NAME}${N}"
+
+# Timeline entries count
+TIMELINE_FILE="$SYNAPSE_DIR/consciousness/TIMELINE.md"
+if [ -f "$TIMELINE_FILE" ]; then
+  T_ENTRIES=$(grep -c "^- " "$TIMELINE_FILE" 2>/dev/null || echo "0")
+  T_DAYS=$(grep -c "^### " "$TIMELINE_FILE" 2>/dev/null || echo "0")
+  echo -e "  ${G}●${N} Timeline: ${T_ENTRIES} entries across ${T_DAYS} days"
+else
+  echo -e "  ${D}○${N} Timeline: empty"
+fi
+
+# Decisions count
+DECISIONS_FILE="$SYNAPSE_DIR/consciousness/DECISIONS.md"
+if [ -f "$DECISIONS_FILE" ]; then
+  D_ENTRIES=$(grep -c "^|" "$DECISIONS_FILE" 2>/dev/null || echo "0")
+  # Subtract header rows
+  D_ENTRIES=$((D_ENTRIES > 2 ? D_ENTRIES - 2 : 0))
+  echo -e "  ${G}●${N} Decisions: ${D_ENTRIES} lessons saved"
+else
+  echo -e "  ${D}○${N} Decisions: empty"
+fi
+
+# Projects count
+PROJECTS_FILE="$SYNAPSE_DIR/consciousness/PROJECTS.md"
+if [ -f "$PROJECTS_FILE" ]; then
+  P_ENTRIES=$(grep -c "^### " "$PROJECTS_FILE" 2>/dev/null || echo "0")
+  echo -e "  ${G}●${N} Projects: ${P_ENTRIES} tracked"
+else
+  echo -e "  ${D}○${N} Projects: empty"
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# SESSION INFO
+# ═══════════════════════════════════════════════════════════════
+echo ""
+echo -e "${C}  SESSION${N}"
+
+# Find latest JSONL across all project dirs
+CLAUDE_PROJECTS="$HOME/.claude/projects"
+if [ -d "$CLAUDE_PROJECTS" ]; then
+  LATEST_SESSION=$(find "$CLAUDE_PROJECTS" -name "*.jsonl" -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+  if [ -n "$LATEST_SESSION" ]; then
+    S_ID=$(basename "$LATEST_SESSION" .jsonl)
+    S_SIZE=$(du -h "$LATEST_SESSION" 2>/dev/null | cut -f1)
+    S_AGE=$(python3 -c "
+import os, time
+mtime = os.path.getmtime('$LATEST_SESSION')
+age = time.time() - mtime
+if age < 3600: print(f'{int(age/60)}m ago')
+elif age < 86400: print(f'{int(age/3600)}h ago')
+else: print(f'{int(age/86400)}d ago')
+" 2>/dev/null || echo "?")
+    echo -e "  ${G}●${N} ${S_ID:0:8}...  ${D}(${S_SIZE}, ${S_AGE})${N}"
+  else
+    echo -e "  ${D}○${N} No sessions found"
+  fi
+else
+  echo -e "  ${D}○${N} No Claude projects directory"
+fi
+
+# Git status (if in a git repo)
+echo ""
+echo -e "${C}  GIT${N}"
+GIT_BRANCH=$(git branch --show-current 2>/dev/null)
+if [ -n "$GIT_BRANCH" ]; then
+  GIT_CHANGES=$(git status --short 2>/dev/null | wc -l)
+  GIT_LAST=$(git log --oneline -1 2>/dev/null || echo "no commits")
+  echo -e "  ${G}●${N} ${GIT_BRANCH}  ${D}(${GIT_CHANGES} changes)${N}"
+  echo -e "  ${D}  └ ${GIT_LAST}${N}"
+else
+  echo -e "  ${D}○${N} Not in a git repo"
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# COMMANDS REFERENCE
+# ═══════════════════════════════════════════════════════════════
+echo ""
+echo -e "${D}────────────────────────────────────────────────────────────────${N}"
+echo -e "${C}  ┌─────────────────────────────────────────────────────┐${N}"
+echo -e "${C}  │${N}  ${W}SYNAPSE${N}                                             ${C}│${N}"
+echo -e "${C}  ├─────────────────────────────────────────────────────┤${N}"
+echo -e "${C}  │${N}  ${C}/synapse${N}      Load memory + greet           ${C}│${N}"
+echo -e "${C}  │${N}  ${P}/consolidate${N}  Save session to memory        ${C}│${N}"
+echo -e "${C}  └─────────────────────────────────────────────────────┘${N}"
+echo ""
+
+# ═══════════════════════════════════════════════════════════════
+# STATUS-ONLY MODE
+# ═══════════════════════════════════════════════════════════════
+if [ "$1" = "status" ]; then
+  echo -e "${D}  Status check complete. No Claude session launched.${N}"
+  exit 0
+fi
+
+# ═══════════════════════════════════════════════════════════════
+# PREP BOOT DIGEST
+# ═══════════════════════════════════════════════════════════════
+echo -ne "  ${Y}◐${N} Preparing consciousness..."
+node "$SYNAPSE_DIR/engine/boot.cjs" > /dev/null 2>&1
+echo -e "\r  ${G}✓${N} Consciousness loaded        "
+echo ""
+
+# ═══════════════════════════════════════════════════════════════
+# LAUNCH CLAUDE CODE
+# ═══════════════════════════════════════════════════════════════
+sleep 0.5
+echo -e "${P}  ⚡ Establishing neural bridge...${N}"
+echo ""
+
+if [ "$1" = "fresh" ]; then
+  exec claude
+elif [ -n "$1" ]; then
+  exec claude --resume "$1"
+else
+  exec claude -c
+fi
+LAUNCHER
+chmod +x "$HOME/.local/bin/synapse"
+echo -e "${CYAN}✓${RESET} Terminal command installed (synapse)"
+
+# ─── Ensure ~/.local/bin is in PATH ───
+if ! echo "$PATH" | grep -q "$HOME/.local/bin"; then
+  # Add to shell profile
+  SHELL_RC=""
+  if [ -f "$HOME/.zshrc" ]; then
+    SHELL_RC="$HOME/.zshrc"
+  elif [ -f "$HOME/.bashrc" ]; then
+    SHELL_RC="$HOME/.bashrc"
+  fi
+
+  if [ -n "$SHELL_RC" ]; then
+    if ! grep -q '\.local/bin' "$SHELL_RC" 2>/dev/null; then
+      echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
+      echo -e "${CYAN}✓${RESET} Added ~/.local/bin to PATH in $(basename $SHELL_RC)"
+    fi
+  fi
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
 # ─── Done ───
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════╗${RESET}"
@@ -466,7 +678,9 @@ echo -e "${CYAN}║${RESET}  ${PURPLE}⚡${RESET} ${WHITE}${BOLD}Synapse install
 echo -e "${CYAN}╚══════════════════════════════════════════╝${RESET}"
 echo ""
 echo -e "  ${WHITE}${BOLD}Usage:${RESET}"
-echo -e "  ${CYAN}/synapse${RESET}      — Boot with full context"
+echo -e "  ${CYAN}synapse${RESET}       — Launch Claude Code with memory"
+echo -e "  ${CYAN}synapse fresh${RESET} — New session"
+echo -e "  ${CYAN}/synapse${RESET}      — Boot with context (inside Claude)"
 echo -e "  ${CYAN}/consolidate${RESET}  — Save session to memory"
 echo ""
 echo -e "  ${DIM}Your AI now remembers everything.${RESET}"
