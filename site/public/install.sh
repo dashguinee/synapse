@@ -490,7 +490,7 @@ N='\033[0m'        # Reset
 # Check Synapse installed
 if [ ! -d "$SYNAPSE_DIR" ]; then
   echo -e "${R}✗${N} Synapse not installed. Run:"
-  echo "  curl -fsSL https://synapse.dasuperhub.com/install.sh | bash"
+  echo "  curl -fsSL https://dashguinee.github.io/synapse/install.sh | bash"
   exit 1
 fi
 

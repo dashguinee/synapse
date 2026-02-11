@@ -34,7 +34,7 @@
 
   <div class="install-box" onclick="copyInstall()">
     <div class="label">Install with one command</div>
-    <code>curl -fsSL https://synapse.dasuperhub.com/install.sh | bash</code>
+    <code>curl -fsSL https://dashguinee.github.io/synapse/install.sh | bash</code>
     <span class="copied" id="copied">Copied!</span>
   </div>
 
@@ -70,7 +70,7 @@
 
 <script>
 function copyInstall() {
-  navigator.clipboard.writeText('curl -fsSL https://synapse.dasuperhub.com/install.sh | bash');
+  navigator.clipboard.writeText('curl -fsSL https://dashguinee.github.io/synapse/install.sh | bash');
   const el = document.getElementById('copied');
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2000);
