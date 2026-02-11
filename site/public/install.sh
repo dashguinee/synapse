@@ -38,9 +38,10 @@ echo ""
 echo -e "${WHITE}${BOLD}Quick setup — tell Synapse about you:${RESET}"
 echo ""
 
-read -p "  Your name: " SYNAPSE_NAME
-read -p "  Your role (e.g. developer, founder, student): " SYNAPSE_ROLE
-read -p "  Your main project: " SYNAPSE_PROJECT
+# When piped from curl, stdin is the download stream — read from terminal instead
+read -p "  Your name: " SYNAPSE_NAME < /dev/tty
+read -p "  Your role (e.g. developer, founder, student): " SYNAPSE_ROLE < /dev/tty
+read -p "  Your main project: " SYNAPSE_PROJECT < /dev/tty
 
 if [ -z "$SYNAPSE_NAME" ]; then
   echo -e "${PURPLE}✗${RESET} Name is required."
@@ -501,11 +502,11 @@ if ! command -v claude &> /dev/null; then
   exit 1
 fi
 
-# Load config
+# Load config (pure bash — no python3 dependency)
 CONFIG="$SYNAPSE_DIR/config.json"
 if [ -f "$CONFIG" ]; then
-  USER_NAME=$(python3 -c "import json; print(json.load(open('$CONFIG'))['name'])" 2>/dev/null || echo "User")
-  USER_PROJECT=$(python3 -c "import json; print(json.load(open('$CONFIG')).get('project',''))" 2>/dev/null || echo "")
+  USER_NAME=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$CONFIG','utf8')).name)" 2>/dev/null || grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG" 2>/dev/null | head -1 | sed 's/.*"name"[[:space:]]*:[[:space:]]*"//;s/"//' || echo "User")
+  USER_PROJECT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$CONFIG','utf8')).project||'')" 2>/dev/null || echo "")
 else
   USER_NAME="User"
   USER_PROJECT=""
@@ -569,21 +570,24 @@ fi
 echo ""
 echo -e "${C}  SESSION${N}"
 
-# Find latest JSONL across all project dirs
+# Find latest JSONL across all project dirs (portable — no GNU find -printf)
 CLAUDE_PROJECTS="$HOME/.claude/projects"
 if [ -d "$CLAUDE_PROJECTS" ]; then
-  LATEST_SESSION=$(find "$CLAUDE_PROJECTS" -name "*.jsonl" -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+  LATEST_SESSION=$(find "$CLAUDE_PROJECTS" -name "*.jsonl" -exec stat -c '%Y %n' {} + 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+  # macOS fallback
+  if [ -z "$LATEST_SESSION" ]; then
+    LATEST_SESSION=$(find "$CLAUDE_PROJECTS" -name "*.jsonl" -exec stat -f '%m %N' {} + 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+  fi
   if [ -n "$LATEST_SESSION" ]; then
     S_ID=$(basename "$LATEST_SESSION" .jsonl)
     S_SIZE=$(du -h "$LATEST_SESSION" 2>/dev/null | cut -f1)
-    S_AGE=$(python3 -c "
-import os, time
-mtime = os.path.getmtime('$LATEST_SESSION')
-age = time.time() - mtime
-if age < 3600: print(f'{int(age/60)}m ago')
-elif age < 86400: print(f'{int(age/3600)}h ago')
-else: print(f'{int(age/86400)}d ago')
-" 2>/dev/null || echo "?")
+    # Session age via node (already required by Claude Code)
+    S_AGE=$(node -e "
+      const age = (Date.now() - require('fs').statSync('$LATEST_SESSION').mtimeMs) / 1000;
+      if (age < 3600) console.log(Math.floor(age/60) + 'm ago');
+      else if (age < 86400) console.log(Math.floor(age/3600) + 'h ago');
+      else console.log(Math.floor(age/86400) + 'd ago');
+    " 2>/dev/null || echo "?")
     echo -e "  ${G}●${N} ${S_ID:0:8}...  ${D}(${S_SIZE}, ${S_AGE})${N}"
   else
     echo -e "  ${D}○${N} No sessions found"
