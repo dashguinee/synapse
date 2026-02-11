@@ -418,19 +418,46 @@ Save what happened this session to consciousness files.
 CMD2
 echo -e "${CYAN}✓${RESET} /consolidate command installed"
 
-# ─── Set up SessionStart hook ───
-HOOKS_FILE="$CLAUDE_DIR/settings.json"
-if [ -f "$HOOKS_FILE" ]; then
-  # Check if hooks already exist — don't overwrite
-  if grep -q "synapse" "$HOOKS_FILE" 2>/dev/null; then
-    echo -e "${DIM}  Synapse hook already configured${RESET}"
-  else
-    echo -e "${DIM}  Note: Add SessionStart hook manually via /hooks in Claude Code${RESET}"
-    echo -e "${DIM}  Command: node ~/.synapse/engine/boot.cjs${RESET}"
-  fi
+# ─── Set up SessionStart hook (auto-boot) ───
+SETTINGS_FILE="$CLAUDE_DIR/settings.json"
+node -e "
+const fs = require('fs');
+const settingsPath = '$SETTINGS_FILE';
+let settings = {};
+try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch {}
+
+// Check if synapse hook already exists
+const hooks = settings.hooks || {};
+const sessionStart = hooks.SessionStart || [];
+const alreadyInstalled = sessionStart.some(h => h.command && h.command.includes('synapse'));
+
+if (!alreadyInstalled) {
+  if (!settings.hooks) settings.hooks = {};
+  if (!settings.hooks.SessionStart) settings.hooks.SessionStart = [];
+  settings.hooks.SessionStart.push({
+    matcher: '',
+    command: 'node ~/.synapse/engine/boot.cjs'
+  });
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+} else {
+}
+" > /dev/null 2>&1
+
+# Verify hook was installed
+HOOK_STATUS=$(node -e "
+const fs = require('fs');
+try {
+  const s = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
+  const h = (s.hooks || {}).SessionStart || [];
+  console.log(h.some(x => x.command && x.command.includes('synapse')) ? 'ok' : 'missing');
+} catch { console.log('missing'); }
+" 2>/dev/null)
+
+if [ "$HOOK_STATUS" = "ok" ]; then
+  echo -e "${CYAN}✓${RESET} SessionStart hook installed (auto-boot on every session)"
 else
-  echo -e "${DIM}  Note: Add SessionStart hook via /hooks in Claude Code${RESET}"
-  echo -e "${DIM}  Command: node ~/.synapse/engine/boot.cjs${RESET}"
+  echo -e "${DIM}  Could not auto-install hook. Add manually via /hooks in Claude Code${RESET}"
+  echo -e "${DIM}  Event: SessionStart | Command: node ~/.synapse/engine/boot.cjs${RESET}"
 fi
 
 # ─── Append to CLAUDE.md (if not already there) ───
