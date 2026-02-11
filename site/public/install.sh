@@ -136,8 +136,10 @@ const config = JSON.parse(fs.readFileSync(path.join(SYNAPSE_DIR, 'config.json'),
 // Find the most recent JSONL session
 function findLatestSession() {
   const claudeDir = path.join(require('os').homedir(), '.claude');
-  const projectDirs = fs.readdirSync(path.join(claudeDir, 'projects')).filter(d => {
-    const full = path.join(claudeDir, 'projects', d);
+  const projectsDir = path.join(claudeDir, 'projects');
+  if (!fs.existsSync(projectsDir)) return null;
+  const projectDirs = fs.readdirSync(projectsDir).filter(d => {
+    const full = path.join(projectsDir, d);
     return fs.statSync(full).isDirectory();
   });
 
@@ -145,7 +147,7 @@ function findLatestSession() {
   let latestTime = 0;
 
   for (const dir of projectDirs) {
-    const full = path.join(claudeDir, 'projects', dir);
+    const full = path.join(projectsDir, dir);
     const files = fs.readdirSync(full).filter(f => f.endsWith('.jsonl'));
     for (const f of files) {
       const fp = path.join(full, f);
