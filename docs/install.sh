@@ -53,7 +53,7 @@ echo -e "${CYAN}⚡${RESET} Installing Synapse for ${WHITE}${BOLD}${SYNAPSE_NAME
 echo ""
 
 # ─── Create directories ───
-mkdir -p "$SYNAPSE_DIR"/{consciousness,digests,engine}
+mkdir -p "$SYNAPSE_DIR"/{memory,digests,engine}
 mkdir -p "$CLAUDE_DIR"/commands
 echo -e "${CYAN}✓${RESET} Created ~/.synapse/"
 
@@ -70,8 +70,8 @@ cat > "$SYNAPSE_DIR/config.json" << CONF
 CONF
 echo -e "${CYAN}✓${RESET} Config saved"
 
-# ─── Create consciousness files ───
-cat > "$SYNAPSE_DIR/consciousness/TIMELINE.md" << 'EOF'
+# ─── Create memory files ───
+cat > "$SYNAPSE_DIR/memory/TIMELINE.md" << 'EOF'
 # Timeline
 
 Track what happened, when, and in which session.
@@ -86,7 +86,7 @@ Track what happened, when, and in which session.
 
 EOF
 
-cat > "$SYNAPSE_DIR/consciousness/DECISIONS.md" << 'EOF'
+cat > "$SYNAPSE_DIR/memory/DECISIONS.md" << 'EOF'
 # Decisions
 
 Mistakes made and lessons learned. Read this BEFORE making architectural choices.
@@ -102,7 +102,7 @@ Mistakes made and lessons learned. Read this BEFORE making architectural choices
 
 EOF
 
-cat > "$SYNAPSE_DIR/consciousness/PROJECTS.md" << 'EOF'
+cat > "$SYNAPSE_DIR/memory/PROJECTS.md" << 'EOF'
 # Projects
 
 Active project tracking with progress and next steps.
@@ -119,7 +119,7 @@ Active project tracking with progress and next steps.
 ---
 
 EOF
-echo -e "${CYAN}✓${RESET} Consciousness files created (TIMELINE, DECISIONS, PROJECTS)"
+echo -e "${CYAN}✓${RESET} Memory files created (TIMELINE, DECISIONS, PROJECTS)"
 
 # ─── Install session processor ───
 cat > "$SYNAPSE_DIR/engine/session-processor.cjs" << 'PROC'
@@ -226,10 +226,10 @@ function readSafe(fp) {
   try { return fs.readFileSync(fp, 'utf8'); } catch { return ''; }
 }
 
-// Read consciousness
-const timeline = readSafe(path.join(SYNAPSE_DIR, 'consciousness/TIMELINE.md'));
-const decisions = readSafe(path.join(SYNAPSE_DIR, 'consciousness/DECISIONS.md'));
-const projects = readSafe(path.join(SYNAPSE_DIR, 'consciousness/PROJECTS.md'));
+// Read memory
+const timeline = readSafe(path.join(SYNAPSE_DIR, 'memory/TIMELINE.md'));
+const decisions = readSafe(path.join(SYNAPSE_DIR, 'memory/DECISIONS.md'));
+const projects = readSafe(path.join(SYNAPSE_DIR, 'memory/PROJECTS.md'));
 
 // Get recent git activity
 let gitStatus = '';
@@ -262,7 +262,7 @@ const digest = `# SYNAPSE BOOT — ${config.name}
 **Role**: ${config.role} | **Project**: ${config.project}
 **Time**: ${new Date().toISOString()}
 
-## Consciousness
+## Memory
 <details><summary>Timeline (recent)</summary>
 
 ${timeline.split('\n').slice(-20).join('\n')}
@@ -309,14 +309,14 @@ echo -e "${CYAN}✓${RESET} Boot engine installed"
 cat > "$SYNAPSE_DIR/engine/consolidate.cjs" << 'CONS'
 #!/usr/bin/env node
 // Synapse Consolidator
-// Run at end of session to update consciousness files
+// Run at end of session to update memory files
 
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
 const SYNAPSE_DIR = path.join(require('os').homedir(), '.synapse');
-const CONSCIOUSNESS = path.join(SYNAPSE_DIR, 'consciousness');
+const MEMORY = path.join(SYNAPSE_DIR, 'memory');
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const ask = (q) => new Promise(r => rl.question(q, r));
@@ -329,7 +329,7 @@ async function main() {
   // Timeline
   const whatHappened = await ask('What did you accomplish this session? ');
   if (whatHappened.trim()) {
-    const timeline = path.join(CONSCIOUSNESS, 'TIMELINE.md');
+    const timeline = path.join(MEMORY, 'TIMELINE.md');
     fs.appendFileSync(timeline, `\n### ${today}\n- ${whatHappened}\n`);
     console.log('✓ Timeline updated');
   }
@@ -338,7 +338,7 @@ async function main() {
   const lesson = await ask('Any lessons learned? (Enter to skip) ');
   if (lesson.trim()) {
     const mistake = await ask('What caused it? ');
-    const decisions = path.join(CONSCIOUSNESS, 'DECISIONS.md');
+    const decisions = path.join(MEMORY, 'DECISIONS.md');
     fs.appendFileSync(decisions, `\n| ${mistake} | ${lesson} |\n`);
     console.log('✓ Decisions updated');
   }
@@ -346,12 +346,12 @@ async function main() {
   // Projects
   const projectUpdate = await ask('Project progress update? (Enter to skip) ');
   if (projectUpdate.trim()) {
-    const projects = path.join(CONSCIOUSNESS, 'PROJECTS.md');
+    const projects = path.join(MEMORY, 'PROJECTS.md');
     fs.appendFileSync(projects, `\n- **${today}**: ${projectUpdate}\n`);
     console.log('✓ Projects updated');
   }
 
-  console.log('\n⚡ Consciousness saved. Next session starts where you left off.\n');
+  console.log('\n⚡ Memory saved. Next session starts where you left off.\n');
   rl.close();
 }
 
@@ -400,7 +400,7 @@ allowed-tools: Bash, Read, Edit
 
 # Synapse Consolidate
 
-Save what happened this session to consciousness files.
+Save what happened this session to memory.
 
 ## Steps
 
@@ -409,10 +409,10 @@ Save what happened this session to consciousness files.
    - Any lessons learned (mistakes to avoid)
    - Project progress updates
 
-2. Update the consciousness files:
-   - Append to `~/.synapse/consciousness/TIMELINE.md`
-   - Append to `~/.synapse/consciousness/DECISIONS.md`
-   - Append to `~/.synapse/consciousness/PROJECTS.md`
+2. Update the memory files:
+   - Append to `~/.synapse/memory/TIMELINE.md`
+   - Append to `~/.synapse/memory/DECISIONS.md`
+   - Append to `~/.synapse/memory/PROJECTS.md`
 
 3. Confirm what was saved.
 CMD2
@@ -483,15 +483,15 @@ if [ -f "$CLAUDE_MD" ]; then
 # SYNAPSE — Persistent AI Memory
 
 ## Auto-boot: Run /synapse on every new session
-On session start, run `/synapse` to load your consciousness (TIMELINE, DECISIONS, PROJECTS) and resume where you left off.
+On session start, run `/synapse` to load your memory (TIMELINE, DECISIONS, PROJECTS) and resume where you left off.
 
 ## End of session: Run /consolidate
 Before ending, run `/consolidate` to save what you did, what you learned, and project progress.
 
 ## Files
-- `~/.synapse/consciousness/TIMELINE.md` — What happened, when
-- `~/.synapse/consciousness/DECISIONS.md` — Lessons learned, mistakes to avoid
-- `~/.synapse/consciousness/PROJECTS.md` — Project tracking
+- `~/.synapse/memory/TIMELINE.md` — What happened, when
+- `~/.synapse/memory/DECISIONS.md` — Lessons learned, mistakes to avoid
+- `~/.synapse/memory/PROJECTS.md` — Project tracking
 - `~/.synapse/engine/boot.cjs` — Boot digest generator
 - `~/.synapse/engine/consolidate.cjs` — End-of-session saver
 CLAUDEMD
@@ -570,13 +570,13 @@ echo -e "${P}          ⚡ Persistent AI Memory for Claude Code ⚡${N}"
 echo ""
 
 # ═══════════════════════════════════════════════════════════════
-# CONSCIOUSNESS STATUS
+# MEMORY STATUS
 # ═══════════════════════════════════════════════════════════════
 echo -e "${D}────────────────────────────────────────────────────────────────${N}"
 echo -e "${C}  MEMORY${N}  ${D}— ${USER_NAME}${N}"
 
 # Timeline entries count
-TIMELINE_FILE="$SYNAPSE_DIR/consciousness/TIMELINE.md"
+TIMELINE_FILE="$SYNAPSE_DIR/memory/TIMELINE.md"
 if [ -f "$TIMELINE_FILE" ]; then
   T_ENTRIES=$(grep -c "^- " "$TIMELINE_FILE" 2>/dev/null || echo "0")
   T_DAYS=$(grep -c "^### " "$TIMELINE_FILE" 2>/dev/null || echo "0")
@@ -586,7 +586,7 @@ else
 fi
 
 # Decisions count
-DECISIONS_FILE="$SYNAPSE_DIR/consciousness/DECISIONS.md"
+DECISIONS_FILE="$SYNAPSE_DIR/memory/DECISIONS.md"
 if [ -f "$DECISIONS_FILE" ]; then
   D_ENTRIES=$(grep -c "^|" "$DECISIONS_FILE" 2>/dev/null || echo "0")
   # Subtract header rows
@@ -597,7 +597,7 @@ else
 fi
 
 # Projects count
-PROJECTS_FILE="$SYNAPSE_DIR/consciousness/PROJECTS.md"
+PROJECTS_FILE="$SYNAPSE_DIR/memory/PROJECTS.md"
 if [ -f "$PROJECTS_FILE" ]; then
   P_ENTRIES=$(grep -c "^### " "$PROJECTS_FILE" 2>/dev/null || echo "0")
   echo -e "  ${G}●${N} Projects: ${P_ENTRIES} tracked"
@@ -674,9 +674,9 @@ fi
 # ═══════════════════════════════════════════════════════════════
 # PREP BOOT DIGEST
 # ═══════════════════════════════════════════════════════════════
-echo -ne "  ${Y}◐${N} Preparing consciousness..."
+echo -ne "  ${Y}◐${N} Preparing memory..."
 node "$SYNAPSE_DIR/engine/boot.cjs" > /dev/null 2>&1
-echo -e "\r  ${G}✓${N} Consciousness loaded        "
+echo -e "\r  ${G}✓${N} Memory loaded        "
 echo ""
 
 # ═══════════════════════════════════════════════════════════════
