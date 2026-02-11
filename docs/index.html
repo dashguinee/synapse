@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synapse — Persistent AI Memory for Claude Code</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+  .container { max-width: 600px; text-align: center; }
+  h1 { font-size: 2.5rem; font-weight: 700; letter-spacing: 0.15em; margin-bottom: 0.5rem; background: linear-gradient(90deg, #00F0FF, #BD00FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .tagline { color: rgba(255,255,255,0.4); font-size: 0.85rem; margin-bottom: 3rem; }
+  .install-box { background: rgba(255,255,255,0.04); border: 1px solid rgba(0,240,255,0.15); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; position: relative; cursor: pointer; transition: all 0.2s; }
+  .install-box:hover { border-color: rgba(0,240,255,0.3); box-shadow: 0 0 30px rgba(0,240,255,0.06); }
+  .install-box code { color: #00F0FF; font-size: 0.85rem; word-break: break-all; }
+  .install-box .label { color: rgba(255,255,255,0.25); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+  .copied { position: absolute; top: -8px; right: 12px; background: #00F0FF; color: #0a0a0a; font-size: 0.6rem; padding: 2px 8px; border-radius: 4px; opacity: 0; transition: opacity 0.3s; font-weight: 600; }
+  .copied.show { opacity: 1; }
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2.5rem; text-align: left; }
+  .feature { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 1rem; }
+  .feature .icon { font-size: 1.2rem; margin-bottom: 0.4rem; }
+  .feature .title { color: rgba(255,255,255,0.8); font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; }
+  .feature .desc { color: rgba(255,255,255,0.3); font-size: 0.65rem; line-height: 1.4; }
+  .footer { color: rgba(255,255,255,0.15); font-size: 0.65rem; }
+  .footer a { color: rgba(0,240,255,0.4); text-decoration: none; }
+  .footer a:hover { color: #00F0FF; }
+  @media (max-width: 500px) { .features { grid-template-columns: 1fr; } h1 { font-size: 1.8rem; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>SYNAPSE</h1>
+  <p class="tagline">Persistent AI Memory for Claude Code</p>
+
+  <div class="install-box" onclick="copyInstall()">
+    <div class="label">Install with one command</div>
+    <code>curl -fsSL https://synapse.dasuperhub.com/install.sh | bash</code>
+    <span class="copied" id="copied">Copied!</span>
+  </div>
+
+  <div class="features">
+    <div class="feature">
+      <div class="icon">&#9889;</div>
+      <div class="title">/synapse</div>
+      <div class="desc">Boot every session with full context. Your AI remembers what you did, what you learned, and what's next.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">&#128024;</div>
+      <div class="title">/consolidate</div>
+      <div class="desc">Save your session to permanent memory. Timeline, decisions, and project progress — never lost.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">&#128161;</div>
+      <div class="title">Consciousness</div>
+      <div class="desc">Three files that make your AI intelligent: TIMELINE, DECISIONS, PROJECTS. Simple markdown, infinite memory.</div>
+    </div>
+    <div class="feature">
+      <div class="icon">&#9881;</div>
+      <div class="title">Zero Config</div>
+      <div class="desc">One curl command. Works with any Claude Code installation. No dependencies, no servers, no sign-up.</div>
+    </div>
+  </div>
+
+  <p class="footer">
+    Built by <a href="https://dasuperhub.com">DASH</a> &middot;
+    <a href="https://github.com/dashguinee/synapse">GitHub</a> &middot;
+    Continuity is intelligence.
+  </p>
+</div>
+
+<script>
+function copyInstall() {
+  navigator.clipboard.writeText('curl -fsSL https://synapse.dasuperhub.com/install.sh | bash');
+  const el = document.getElementById('copied');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+</script>
+</body>
+</html>
