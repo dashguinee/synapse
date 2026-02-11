@@ -429,14 +429,21 @@ try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch {}
 // Check if synapse hook already exists
 const hooks = settings.hooks || {};
 const sessionStart = hooks.SessionStart || [];
-const alreadyInstalled = sessionStart.some(h => h.command && h.command.includes('synapse'));
+const alreadyInstalled = sessionStart.some(h => {
+  if (h.command && h.command.includes('synapse')) return true;
+  if (h.hooks) return h.hooks.some(hh => hh.command && hh.command.includes('synapse'));
+  return false;
+});
 
 if (!alreadyInstalled) {
   if (!settings.hooks) settings.hooks = {};
   if (!settings.hooks.SessionStart) settings.hooks.SessionStart = [];
   settings.hooks.SessionStart.push({
-    matcher: '',
-    command: 'node ~/.synapse/engine/boot.cjs'
+    hooks: [{
+      type: 'command',
+      command: 'node ~/.synapse/engine/boot.cjs',
+      timeout: 10
+    }]
   });
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
 } else {
@@ -449,7 +456,12 @@ const fs = require('fs');
 try {
   const s = JSON.parse(fs.readFileSync('$SETTINGS_FILE', 'utf8'));
   const h = (s.hooks || {}).SessionStart || [];
-  console.log(h.some(x => x.command && x.command.includes('synapse')) ? 'ok' : 'missing');
+  const found = h.some(x => {
+    if (x.command && x.command.includes('synapse')) return true;
+    if (x.hooks) return x.hooks.some(hh => hh.command && hh.command.includes('synapse'));
+    return false;
+  });
+  console.log(found ? 'ok' : 'missing');
 } catch { console.log('missing'); }
 " 2>/dev/null)
 
