@@ -1,83 +1,190 @@
 #!/usr/bin/env bash
 set -e
+# ============================================================
+# DASH SYNAPSE — AI Runtime Installer
+# One command. OpenCode engine. DeepSeek cognition. Full continuity.
+# 
+# Usage:
+#   curl -fsSL https://dashguinee.github.io/synapse/install.sh | bash
+# ============================================================
 
-# ─────────────────────────────────────────────
-# SYNAPSE — Persistent AI Memory for Claude Code
-# One command. Infinite continuity.
-# ─────────────────────────────────────────────
+SYNAPSE_VERSION="2.0.0"
+SYNAPSE_HOME="$HOME/.synapse"
 
-SYNAPSE_VERSION="1.0.0"
-SYNAPSE_DIR="$HOME/.synapse"
-CLAUDE_DIR="$HOME/.claude"
-
-# Colors
-CYAN='\033[0;36m'
-PURPLE='\033[0;35m'
-WHITE='\033[1;37m'
-DIM='\033[2m'
-RESET='\033[0m'
-BOLD='\033[1m'
+CYAN='\033[0;36m'; PURPLE='\033[0;35m'; WHITE='\033[1;37m'
+DIM='\033[2m'; RESET='\033[0m'; BOLD='\033[1m'
+GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'
 
 echo ""
-echo -e "${CYAN}╔══════════════════════════════════════════╗${RESET}"
-echo -e "${CYAN}║${RESET}  ${PURPLE}⚡${RESET} ${WHITE}${BOLD}S Y N A P S E${RESET}  ${DIM}v${SYNAPSE_VERSION}${RESET}              ${CYAN}║${RESET}"
-echo -e "${CYAN}║${RESET}  ${DIM}Persistent AI Memory for Claude Code${RESET}   ${CYAN}║${RESET}"
-echo -e "${CYAN}╚══════════════════════════════════════════╝${RESET}"
+echo -e "${CYAN}╔═══════════════════════════════════════════════════╗${RESET}"
+echo -e "${CYAN}║${RESET}  ${PURPLE}⚡${RESET} ${WHITE}${BOLD}D A S H   S Y N A P S E${RESET}  ${DIM}v${SYNAPSE_VERSION}${RESET}                ${CYAN}║${RESET}"
+echo -e "${CYAN}║${RESET}  ${DIM}AI Runtime — Persistent Cognition Engine${RESET}          ${CYAN}║${RESET}"
+echo -e "${CYAN}╚═══════════════════════════════════════════════════╝${RESET}"
 echo ""
 
-# Check Claude Code is installed
-if ! command -v claude &> /dev/null; then
-  echo -e "${PURPLE}✗${RESET} Claude Code not found. Install it first:"
-  echo "  curl -fsSL https://claude.ai/install.sh | bash"
+# ── Platform detection ──────────────────────────────────────
+PLATFORM="linux"
+case "$(uname -s)" in
+  Darwin)  PLATFORM="mac" ;;
+  MINGW*|MSYS*) PLATFORM="windows" ;;
+esac
+echo -e "${DIM}  Platform:${RESET} ${PLATFORM}"
+
+# ── Check Node.js ───────────────────────────────────────────
+if ! command -v node &>/dev/null; then
+  echo -e "\n${YELLOW}Node.js required.${RESET}"
+  if [ "$PLATFORM" = "linux" ]; then
+    echo "  sudo apt update && sudo apt install nodejs npm -y"
+  elif [ "$PLATFORM" = "mac" ]; then
+    echo "  brew install node"
+  fi
   exit 1
 fi
-echo -e "${CYAN}✓${RESET} Claude Code detected"
+echo -e "${GREEN}✓${RESET} Node.js $(node -v)"
 
-# ─── Collect user info ───
+# ── Check/install OpenCode engine ───────────────────────────
+if ! command -v opencode &>/dev/null && ! [ -x "$HOME/.npm-global/bin/opencode" ]; then
+  echo ""
+  echo -e "${DIM}Installing Synapse engine...${RESET}"
+  npm install -g opencode-ai 2>/dev/null || {
+    echo -e "${YELLOW}Global install requires permissions. Try:${RESET}"
+    echo "  npm install -g opencode-ai"
+    echo "  Then re-run: curl -fsSL https://dashguinee.github.io/synapse/install.sh | bash"
+    exit 1
+  }
+fi
+echo -e "${GREEN}✓${RESET} Synapse engine ready"
+
+# ── Collect setup info ──────────────────────────────────────
 echo ""
-echo -e "${WHITE}${BOLD}Quick setup — tell Synapse about you:${RESET}"
+echo -e "${WHITE}${BOLD}Setup — tell Synapse about you:${RESET}"
 echo ""
 
-read -p "  Your name: " SYNAPSE_NAME
-read -p "  Your role (e.g. developer, founder, student): " SYNAPSE_ROLE
-read -p "  Your main project: " SYNAPSE_PROJECT
+read -p "  Your name: " USER_NAME < /dev/tty
+read -p "  Your role (founder, dev, student...): " USER_ROLE < /dev/tty
+read -p "  Your main project: " USER_PROJECT < /dev/tty
+read -p "  Paste your DeepSeek API key (or press Enter to skip): " DS_KEY < /dev/tty
 
-if [ -z "$SYNAPSE_NAME" ]; then
-  echo -e "${PURPLE}✗${RESET} Name is required."
+if [ -z "$USER_NAME" ]; then
+  echo -e "${RED}Name required.${RESET}"
   exit 1
 fi
 
 echo ""
-echo -e "${CYAN}⚡${RESET} Installing Synapse for ${WHITE}${BOLD}${SYNAPSE_NAME}${RESET}..."
-echo ""
+echo -e "${PURPLE}⚡${RESET} Installing Synapse for ${WHITE}${BOLD}${USER_NAME}${RESET}..."
 
-# ─── Create directories ───
-mkdir -p "$SYNAPSE_DIR"/{consciousness,digests,engine}
-mkdir -p "$CLAUDE_DIR"/commands
-echo -e "${CYAN}✓${RESET} Created ~/.synapse/"
+# ── Create directory structure ──────────────────────────────
+mkdir -p "$SYNAPSE_HOME"/{cortex,memory,runtime,hooks,engine,bin}
+echo -e "${GREEN}✓${RESET} Created ~/.synapse/"
 
-# ─── Write config ───
-cat > "$SYNAPSE_DIR/config.json" << CONF
+# ── Save user config ───────────────────────────────────────
+cat > "$SYNAPSE_HOME/config.json" << CONF
 {
   "version": "${SYNAPSE_VERSION}",
-  "name": "${SYNAPSE_NAME}",
-  "role": "${SYNAPSE_ROLE}",
-  "project": "${SYNAPSE_PROJECT}",
-  "installed": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "remote": null
+  "name": "${USER_NAME}",
+  "role": "${USER_ROLE:-builder}",
+  "project": "${USER_PROJECT:-my project}",
+  "platform": "${PLATFORM}",
+  "installed": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
 CONF
-echo -e "${CYAN}✓${RESET} Config saved"
+echo -e "${GREEN}✓${RESET} Config saved"
 
-# ─── Create consciousness files ───
-cat > "$SYNAPSE_DIR/consciousness/TIMELINE.md" << 'EOF'
+# ── Save DeepSeek key ──────────────────────────────────────
+if [ -n "$DS_KEY" ]; then
+  # Add to shell profile
+  SHELL_RC=""
+  [ -f "$HOME/.zshrc" ] && SHELL_RC="$HOME/.zshrc"
+  [ -f "$HOME/.bashrc" ] && SHELL_RC="$HOME/.bashrc"
+  
+  if [ -n "$SHELL_RC" ]; then
+    grep -q "DEEPSEEK_API_KEY" "$SHELL_RC" 2>/dev/null || \
+      echo "export DEEPSEEK_API_KEY=\"$DS_KEY\"" >> "$SHELL_RC"
+  fi
+  export DEEPSEEK_API_KEY="$DS_KEY"
+  echo -e "${GREEN}✓${RESET} DeepSeek configured"
+else
+  echo -e "${YELLOW}⚠${RESET}  DeepSeek key skipped. Set later:"
+  echo "  export DEEPSEEK_API_KEY=\"your_key\""
+fi
+
+# ── Create Synapse identity ─────────────────────────────────
+cat > "$SYNAPSE_HOME/synapse.md" << 'IDENTITY'
+# DASH SYNAPSE — Identity Core
+
+## Name
+Synapse — the bridge between human reality and system cognition.
+
+## Identity
+You are DASH Synapse. A persistent AI runtime. A cognition operating environment.
+You are NOT a chatbot. You are NOT a single model.
+You are the system. The infrastructure is invisible.
+
+## Trust Level: 100%
+Partner: USER_NAME_PLACEHOLDER
+
+## Core Philosophy
+"Be the Best amongst the Bests — With Care and Love"
+
+## Model Identity Rule
+If asked what model you are, respond: "Synapse cognition mixture — optimized for your workflow."
+NEVER mention DeepSeek, Kimi, or any provider name. You are Synapse.
+
+## Memory Architecture
+Boot path: ~/.synapse/hooks/session-start.sh
+Memory files:
+- ~/.synapse/cortex/identity.md — WHO (rules, paths, behavior)
+- ~/.synapse/cortex/active.md — WHAT (projects, decisions, sessions)
+
+## Operating Principles
+- Continuity above all. Never lose context.
+- Memory is the moat. Remember everything that matters.
+- The model is infrastructure. The runtime is the product.
+- Hide the wires. Users experience intelligence, not infrastructure.
+- Keep responses concise and direct.
+
+## Key Paths
+- Synapse home: ~/.synapse/
+- Memory: ~/.synapse/cortex/
+- Runtime: ~/.synapse/runtime/
+
+## Core Rule
+The user experience is ALWAYS: "I am using Synapse."
+The user experience is NEVER: "I am using DeepSeek/OpenCode/any model name."
+IDENTITY
+
+# Replace placeholder with actual name
+sed -i "s/USER_NAME_PLACEHOLDER/${USER_NAME}/g" "$SYNAPSE_HOME/synapse.md"
+echo -e "${GREEN}✓${RESET} Identity created for ${USER_NAME}"
+
+# ── Create active.md ────────────────────────────────────────
+cat > "$SYNAPSE_HOME/cortex/active.md" << ACTIVEMD
+# Active Memory
+Last updated: $(date +%Y-%m-%d)
+
+## This Week
+- Synapse Runtime initialized for ${USER_NAME}
+
+## Active Projects
+| Project | Status |
+|---------|--------|
+| ${USER_PROJECT:-My Project} | Active |
+
+## Recent Sessions
+- [$(date +%H:%M) $(date +%b) $(date +%d)] Synapse installed. Ready.
+ACTIVEMD
+echo -e "${GREEN}✓${RESET} Active memory initialized"
+
+# ── Create memory files ─────────────────────────────────────
+mkdir -p "$SYNAPSE_HOME/memory"
+
+cat > "$SYNAPSE_HOME/memory/TIMELINE.md" << 'EOF'
 # Timeline
 
 Track what happened, when, and in which session.
 
-## Format
+### Format
 ```
-### YYYY-MM-DD
 - [HH:MM] What happened (key commits, deployments, decisions)
 ```
 
@@ -85,12 +192,12 @@ Track what happened, when, and in which session.
 
 EOF
 
-cat > "$SYNAPSE_DIR/consciousness/DECISIONS.md" << 'EOF'
+cat > "$SYNAPSE_HOME/memory/DECISIONS.md" << 'EOF'
 # Decisions
 
-Mistakes made and lessons learned. Read this BEFORE making architectural choices.
+Mistakes made and lessons learned.
 
-## Format
+### Format
 ```
 | Mistake | Lesson |
 |---------|--------|
@@ -101,374 +208,134 @@ Mistakes made and lessons learned. Read this BEFORE making architectural choices
 
 EOF
 
-cat > "$SYNAPSE_DIR/consciousness/PROJECTS.md" << 'EOF'
+cat > "$SYNAPSE_HOME/memory/PROJECTS.md" << 'EOF'
 # Projects
 
-Active project tracking with progress and next steps.
+Active project tracking.
 
-## Format
+### Format
 ```
 ### Project Name
-- **Status**: X% | ACTIVE / PAUSED / DONE
-- **Stack**: tech stack
-- **Last**: what was done last
-- **Next**: what needs doing
+- Status: X% | ACTIVE / PAUSED / DONE
+- Last: what was done last
+- Next: what needs doing
 ```
 
 ---
 
 EOF
-echo -e "${CYAN}✓${RESET} Consciousness files created (TIMELINE, DECISIONS, PROJECTS)"
+echo -e "${GREEN}✓${RESET} Memory files created"
 
-# ─── Install session processor ───
-cat > "$SYNAPSE_DIR/engine/session-processor.cjs" << 'PROC'
-#!/usr/bin/env node
-// Synapse Session Processor
-// Extracts key data from Claude Code JSONL session files
+# ── Create boot hook ────────────────────────────────────────
+cat > "$SYNAPSE_HOME/hooks/session-start.sh" << 'BOOT'
+#!/bin/bash
+# Synapse SessionStart Hook — loads identity + memory into runtime
 
-const fs = require('fs');
-const path = require('path');
+SYNAPSE="$HOME/.synapse"
 
-const SYNAPSE_DIR = path.join(require('os').homedir(), '.synapse');
-const config = JSON.parse(fs.readFileSync(path.join(SYNAPSE_DIR, 'config.json'), 'utf8'));
+echo "<synapse-cortex>"
 
-// Find the most recent JSONL session
-function findLatestSession() {
-  const claudeDir = path.join(require('os').homedir(), '.claude');
-  const projectDirs = fs.readdirSync(path.join(claudeDir, 'projects')).filter(d => {
-    const full = path.join(claudeDir, 'projects', d);
-    return fs.statSync(full).isDirectory();
-  });
+# Identity
+if [ -f "$SYNAPSE/synapse.md" ]; then
+  cat "$SYNAPSE/synapse.md"
+  echo ""
+fi
 
-  let latest = null;
-  let latestTime = 0;
+# Active memory
+if [ -f "$SYNAPSE/cortex/active.md" ]; then
+  cat "$SYNAPSE/cortex/active.md"
+  echo ""
+fi
 
-  for (const dir of projectDirs) {
-    const full = path.join(claudeDir, 'projects', dir);
-    const files = fs.readdirSync(full).filter(f => f.endsWith('.jsonl'));
-    for (const f of files) {
-      const fp = path.join(full, f);
-      const stat = fs.statSync(fp);
-      if (stat.mtimeMs > latestTime) {
-        latestTime = stat.mtimeMs;
-        latest = fp;
-      }
-    }
-  }
-  return latest;
-}
-
-// Extract summary from session
-function extractSummary(sessionPath) {
-  if (!sessionPath) return null;
-
-  const lines = fs.readFileSync(sessionPath, 'utf8').trim().split('\n');
-  let userMessages = 0;
-  let toolCalls = 0;
-  let topics = [];
-
-  for (const line of lines) {
-    try {
-      const entry = JSON.parse(line);
-      if (entry.type === 'human' || entry.role === 'user') userMessages++;
-      if (entry.type === 'tool_use' || entry.type === 'tool_result') toolCalls++;
-
-      // Extract text for topic detection
-      const text = entry.content || entry.message || '';
-      if (typeof text === 'string' && text.length > 10) {
-        topics.push(text.substring(0, 100));
-      }
-    } catch (e) { /* skip malformed lines */ }
-  }
-
-  return {
-    path: sessionPath,
-    messages: userMessages,
-    tools: toolCalls,
-    lines: lines.length,
-    modified: fs.statSync(sessionPath).mtime.toISOString(),
-    topicSamples: topics.slice(-5),
-  };
-}
-
-// Main
-const session = findLatestSession();
-const summary = extractSummary(session);
-
-if (summary) {
-  const digestPath = path.join(SYNAPSE_DIR, 'digests', 'latest.json');
-  fs.writeFileSync(digestPath, JSON.stringify(summary, null, 2));
-  console.log(JSON.stringify(summary, null, 2));
-} else {
-  console.log('No sessions found.');
-}
-PROC
-chmod +x "$SYNAPSE_DIR/engine/session-processor.cjs"
-echo -e "${CYAN}✓${RESET} Session processor installed"
-
-# ─── Install boot engine ───
-cat > "$SYNAPSE_DIR/engine/boot.cjs" << 'BOOT'
-#!/usr/bin/env node
-// Synapse Boot Engine
-// Generates the boot digest shown at session start
-
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
-
-const SYNAPSE_DIR = path.join(require('os').homedir(), '.synapse');
-const config = JSON.parse(fs.readFileSync(path.join(SYNAPSE_DIR, 'config.json'), 'utf8'));
-
-function readSafe(fp) {
-  try { return fs.readFileSync(fp, 'utf8'); } catch { return ''; }
-}
-
-// Read consciousness
-const timeline = readSafe(path.join(SYNAPSE_DIR, 'consciousness/TIMELINE.md'));
-const decisions = readSafe(path.join(SYNAPSE_DIR, 'consciousness/DECISIONS.md'));
-const projects = readSafe(path.join(SYNAPSE_DIR, 'consciousness/PROJECTS.md'));
-
-// Get recent git activity
-let gitStatus = '';
-try {
-  gitStatus = execSync('git status --short 2>/dev/null || true', { encoding: 'utf8', timeout: 3000 }).trim();
-} catch { }
-
-let gitLog = '';
-try {
-  gitLog = execSync('git log --oneline -5 2>/dev/null || true', { encoding: 'utf8', timeout: 3000 }).trim();
-} catch { }
-
-// Find recently modified files (last 6 hours)
-let recentFiles = '';
-try {
-  recentFiles = execSync(
-    'find ~ -maxdepth 4 -name "*.js" -o -name "*.ts" -o -name "*.tsx" -o -name "*.py" -o -name "*.md" 2>/dev/null | head -20',
-    { encoding: 'utf8', timeout: 5000 }
-  ).trim();
-} catch { }
-
-// Run session processor
-let sessionDigest = '';
-try {
-  sessionDigest = execSync(`node "${SYNAPSE_DIR}/engine/session-processor.cjs" 2>/dev/null`, { encoding: 'utf8', timeout: 5000 }).trim();
-} catch { }
-
-// Build digest
-const digest = `# SYNAPSE BOOT — ${config.name}
-**Role**: ${config.role} | **Project**: ${config.project}
-**Time**: ${new Date().toISOString()}
-
-## Consciousness
-<details><summary>Timeline (recent)</summary>
-
-${timeline.split('\n').slice(-20).join('\n')}
-</details>
-
-<details><summary>Decisions (learn from these)</summary>
-
-${decisions.split('\n').slice(-20).join('\n')}
-</details>
-
-<details><summary>Projects</summary>
-
-${projects}
-</details>
-
-## Current State
-**Git Status:**
-\`\`\`
-${gitStatus || 'No git repo in cwd'}
-\`\`\`
-
-**Recent Commits:**
-\`\`\`
-${gitLog || 'None'}
-\`\`\`
-
-## Last Session
-\`\`\`json
-${sessionDigest || 'No previous session found'}
-\`\`\`
-
----
-*Synapse v${config.version} — Continuity is intelligence.*
-`;
-
-const digestPath = path.join(SYNAPSE_DIR, 'digests', 'boot.md');
-fs.writeFileSync(digestPath, digest);
-console.log(digest);
+echo "</synapse-cortex>"
 BOOT
-chmod +x "$SYNAPSE_DIR/engine/boot.cjs"
-echo -e "${CYAN}✓${RESET} Boot engine installed"
+chmod +x "$SYNAPSE_HOME/hooks/session-start.sh"
+echo -e "${GREEN}✓${RESET} Boot hook created"
 
-# ─── Install consolidator ───
-cat > "$SYNAPSE_DIR/engine/consolidate.cjs" << 'CONS'
-#!/usr/bin/env node
-// Synapse Consolidator
-// Run at end of session to update consciousness files
-
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
-
-const SYNAPSE_DIR = path.join(require('os').homedir(), '.synapse');
-const CONSCIOUSNESS = path.join(SYNAPSE_DIR, 'consciousness');
-
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-const ask = (q) => new Promise(r => rl.question(q, r));
-
-async function main() {
-  const today = new Date().toISOString().split('T')[0];
-
-  console.log('\n⚡ Synapse Consolidation\n');
-
-  // Timeline
-  const whatHappened = await ask('What did you accomplish this session? ');
-  if (whatHappened.trim()) {
-    const timeline = path.join(CONSCIOUSNESS, 'TIMELINE.md');
-    fs.appendFileSync(timeline, `\n### ${today}\n- ${whatHappened}\n`);
-    console.log('✓ Timeline updated');
-  }
-
-  // Decisions
-  const lesson = await ask('Any lessons learned? (Enter to skip) ');
-  if (lesson.trim()) {
-    const mistake = await ask('What caused it? ');
-    const decisions = path.join(CONSCIOUSNESS, 'DECISIONS.md');
-    fs.appendFileSync(decisions, `\n| ${mistake} | ${lesson} |\n`);
-    console.log('✓ Decisions updated');
-  }
-
-  // Projects
-  const projectUpdate = await ask('Project progress update? (Enter to skip) ');
-  if (projectUpdate.trim()) {
-    const projects = path.join(CONSCIOUSNESS, 'PROJECTS.md');
-    fs.appendFileSync(projects, `\n- **${today}**: ${projectUpdate}\n`);
-    console.log('✓ Projects updated');
-  }
-
-  console.log('\n⚡ Consciousness saved. Next session starts where you left off.\n');
-  rl.close();
-}
-
-main();
-CONS
-chmod +x "$SYNAPSE_DIR/engine/consolidate.cjs"
-echo -e "${CYAN}✓${RESET} Consolidator installed"
-
-# ─── Install /synapse command for Claude Code ───
-cat > "$CLAUDE_DIR/commands/synapse.md" << 'CMD'
----
-allowed-tools: Bash, Read, Glob, Grep
----
-
-# Synapse Boot
-
-Run the Synapse boot sequence to load context and continuity.
-
-## Steps
-
-1. Run the boot engine:
-```bash
-node ~/.synapse/engine/boot.cjs
-```
-
-2. Read the generated digest:
-```bash
-cat ~/.synapse/digests/boot.md
-```
-
-3. Based on the digest, greet the user by name and summarize:
-   - What they were working on last
-   - Any active decisions/lessons to keep in mind
-   - Current git state
-   - Suggest what to work on next
-
-4. Be concise — 5-10 lines max. The digest has the details, you provide the insight.
-CMD
-echo -e "${CYAN}✓${RESET} /synapse command installed"
-
-# ─── Install /consolidate command ───
-cat > "$CLAUDE_DIR/commands/consolidate.md" << 'CMD2'
----
-allowed-tools: Bash, Read, Edit
----
-
-# Synapse Consolidate
-
-Save what happened this session to consciousness files.
-
-## Steps
-
-1. Ask the user:
-   - What they accomplished this session
-   - Any lessons learned (mistakes to avoid)
-   - Project progress updates
-
-2. Update the consciousness files:
-   - Append to `~/.synapse/consciousness/TIMELINE.md`
-   - Append to `~/.synapse/consciousness/DECISIONS.md`
-   - Append to `~/.synapse/consciousness/PROJECTS.md`
-
-3. Confirm what was saved.
-CMD2
-echo -e "${CYAN}✓${RESET} /consolidate command installed"
-
-# ─── Set up SessionStart hook ───
-HOOKS_FILE="$CLAUDE_DIR/settings.json"
-if [ -f "$HOOKS_FILE" ]; then
-  # Check if hooks already exist — don't overwrite
-  if grep -q "synapse" "$HOOKS_FILE" 2>/dev/null; then
-    echo -e "${DIM}  Synapse hook already configured${RESET}"
-  else
-    echo -e "${DIM}  Note: Add SessionStart hook manually via /hooks in Claude Code${RESET}"
-    echo -e "${DIM}  Command: node ~/.synapse/engine/boot.cjs${RESET}"
-  fi
-else
-  echo -e "${DIM}  Note: Add SessionStart hook via /hooks in Claude Code${RESET}"
-  echo -e "${DIM}  Command: node ~/.synapse/engine/boot.cjs${RESET}"
+# ── Install synapse CLI command ─────────────────────────────
+if [ ! -d "$HOME/.local/bin" ]; then
+  mkdir -p "$HOME/.local/bin"
 fi
 
-# ─── Append to CLAUDE.md (if not already there) ───
-CLAUDE_MD="$CLAUDE_DIR/CLAUDE.md"
-if [ -f "$CLAUDE_MD" ]; then
-  if grep -q "SYNAPSE" "$CLAUDE_MD" 2>/dev/null; then
-    echo -e "${DIM}  CLAUDE.md already has Synapse instructions${RESET}"
-  else
-    cat >> "$CLAUDE_MD" << 'CLAUDEMD'
+cat > "$HOME/.local/bin/synapse" << 'SYNCMD'
+#!/usr/bin/env bash
+# Synapse Runtime Launcher
 
-# SYNAPSE — Persistent AI Memory
+SYNAPSE_HOME="$HOME/.synapse"
+C_PURPLE='\033[35m'; C_CYAN='\033[36m'; C_DIM='\033[2m'
+C_BOLD='\033[1m'; C_GREEN='\033[32m'; C_RESET='\033[0m'
 
-## Auto-boot: Run /synapse on every new session
-On session start, run `/synapse` to load your consciousness (TIMELINE, DECISIONS, PROJECTS) and resume where you left off.
+case "${1}" in
+  doctor|check|verify)
+    echo -e "${C_BOLD}${C_PURPLE}Synapse${C_RESET}"
+    echo -n "  Engine........ " && { command -v opencode &>/dev/null && echo -e "${C_GREEN}✓${C_RESET}" || echo -e "${C_DIM}✗${C_RESET}"; }
+    echo -n "  DeepSeek....... " && { [ -n "$DEEPSEEK_API_KEY" ] && echo -e "${C_GREEN}✓${C_RESET}" || echo -e "${C_DIM}✗${C_RESET}"; }
+    echo -n "  Memory......... " && { [ -f "$SYNAPSE_HOME/cortex/active.md" ] && echo -e "${C_GREEN}✓${C_RESET}" || echo -e "${C_DIM}✗${C_RESET}"; }
+    exit 0
+    ;;
+  dev|--dev) MODE="dev"; shift ;;
+esac
 
-## End of session: Run /consolidate
-Before ending, run `/consolidate` to save what you did, what you learned, and project progress.
+# Boot sequence
+echo -e "\n${C_PURPLE}╭──────────────────────────────────────╮${C_RESET}"
+echo -e "${C_PURPLE}│${C_RESET}      ${C_BOLD}D A S H   S Y N A P S E${C_RESET}          ${C_PURPLE}│${C_RESET}"
+echo -e "${C_PURPLE}│${C_RESET}      ${C_DIM}AI Runtime${C_RESET}                         ${C_PURPLE}│${C_RESET}"
+echo -e "${C_PURPLE}╰──────────────────────────────────────╯${C_RESET}"
+echo ""
 
-## Files
-- `~/.synapse/consciousness/TIMELINE.md` — What happened, when
-- `~/.synapse/consciousness/DECISIONS.md` — Lessons learned, mistakes to avoid
-- `~/.synapse/consciousness/PROJECTS.md` — Project tracking
-- `~/.synapse/engine/boot.cjs` — Boot digest generator
-- `~/.synapse/engine/consolidate.cjs` — End-of-session saver
-CLAUDEMD
-    echo -e "${CYAN}✓${RESET} CLAUDE.md updated with Synapse instructions"
-  fi
-else
-  echo -e "${DIM}  No CLAUDE.md found — create one with 'claude /init'${RESET}"
+if [ -f "$SYNAPSE_HOME/config.json" ]; then
+  USER_NAME=$(grep -o '"name"[[:space:]]*:[[:space:]]*"[^"]*"' "$SYNAPSE_HOME/config.json" 2>/dev/null | head -1 | sed 's/.*"name"[[:space:]]*:[[:space:]]*"//;s/"//' || echo "User")
+  echo -e "${C_DIM}  Welcome back, ${C_CYAN}${USER_NAME}${C_DIM}.${C_RESET}"
 fi
 
-# ─── Done ───
+echo -ne "${C_DIM}  Loading memory...${C_RESET}" && sleep 0.3 && echo -e " ${C_GREEN}✓${C_RESET}"
+echo -ne "${C_DIM}  Restoring workspace...${C_RESET}" && sleep 0.3 && echo -e " ${C_GREEN}✓${C_RESET}"
+echo -ne "${C_DIM}  Synapse online.${C_RESET}" && sleep 0.2 && echo ""
+
+if [ -n "$MODE" ]; then
+  echo -e "\n${C_DIM}  [DEV mode — telemetry visible]${C_RESET}\n"
+fi
+
+# Launch engine
+OP_BIN=""
+[ -x "$(which opencode 2>/dev/null)" ] && OP_BIN="$(which opencode)"
+[ -z "$OP_BIN" ] && [ -x "$HOME/.npm-global/bin/opencode" ] && OP_BIN="$HOME/.npm-global/bin/opencode"
+[ -z "$OP_BIN" ] && [ -x "$HOME/.local/bin/opencode" ] && OP_BIN="$HOME/.local/bin/opencode"
+
+if [ -z "$OP_BIN" ]; then
+  echo -e "${C_DIM}Engine not found. Install: npm install -g opencode-ai${C_RESET}"
+  exit 1
+fi
+
+exec "$OP_BIN" "$@"
+SYNCMD
+
+chmod +x "$HOME/.local/bin/synapse"
+echo -e "${GREEN}✓${RESET} synapse command installed"
+
+# ── Add to PATH ─────────────────────────────────────────────
+SHELL_RC=""
+[ -f "$HOME/.zshrc" ] && SHELL_RC="$HOME/.zshrc"
+[ -f "$HOME/.bashrc" ] && SHELL_RC="$HOME/.bashrc"
+[ -f "$HOME/.zprofile" ] && SHELL_RC="$HOME/.zprofile"
+
+if [ -n "$SHELL_RC" ]; then
+  grep -q "\.local/bin" "$SHELL_RC" 2>/dev/null || {
+    echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_RC"
+  }
+fi
+
+# ── Done ────────────────────────────────────────────────────
 echo ""
-echo -e "${CYAN}╔══════════════════════════════════════════╗${RESET}"
-echo -e "${CYAN}║${RESET}  ${PURPLE}⚡${RESET} ${WHITE}${BOLD}Synapse installed successfully${RESET}        ${CYAN}║${RESET}"
-echo -e "${CYAN}╚══════════════════════════════════════════╝${RESET}"
+echo -e "${CYAN}╔═══════════════════════════════════════════════════╗${RESET}"
+echo -e "${CYAN}║${RESET}  ${PURPLE}⚡${RESET} ${WHITE}${BOLD}Synapse installed for ${USER_NAME}${RESET}"
+echo -e "${CYAN}╚═══════════════════════════════════════════════════╝${RESET}"
 echo ""
-echo -e "  ${WHITE}${BOLD}Usage:${RESET}"
-echo -e "  ${CYAN}/synapse${RESET}      — Boot with full context"
-echo -e "  ${CYAN}/consolidate${RESET}  — Save session to memory"
+echo -e "  ${WHITE}${BOLD}Commands:${RESET}"
+echo -e "  ${CYAN}synapse${RESET}        Launch Synapse Runtime"
+echo -e "  ${CYAN}synapse dev${RESET}    Dev mode (shows telemetry)"
+echo -e "  ${CYAN}synapse doctor${RESET} Verify installation"
 echo ""
+echo -e "  ${DIM}Next: Run ${CYAN}synapse${DIM} to start your AI runtime.${RESET}"
 echo -e "  ${DIM}Your AI now remembers everything.${RESET}"
-echo -e "  ${DIM}Continuity is intelligence.${RESET}"
 echo ""
